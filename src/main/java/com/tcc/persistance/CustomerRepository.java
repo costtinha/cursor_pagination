@@ -10,7 +10,7 @@ import java.util.List;
 @Repository("CustomerJpaRepository")
 public interface CustomerRepository extends JpaRepository<Customer,Integer> {
 
-    List<Customer> findByIdGreaterThanOrderByIdAsc(Integer lastId,
+    List<Customer> findByCustomerIdGreaterThanOrderByCustomerIdAsc(Integer lastId,
                                                  Pageable pageable);
-    List<Customer> findByIdLessThanOrderByIdDesc(Integer lastId, Pageable pageable);
+    List<Customer> findByCustomerIdLessThanOrderByCustomerIdDesc(Integer lastId, Pageable pageable);
 }

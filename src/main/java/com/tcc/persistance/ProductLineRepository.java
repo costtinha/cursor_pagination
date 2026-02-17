@@ -9,6 +9,6 @@ import java.util.List;
 
 @Repository("ProductLineJpaRepository")
 public interface ProductLineRepository extends JpaRepository<ProductLine, Integer> {
-    List<ProductLine> findByIdGreaterThanOrderByIdAsc(Integer lastId, Pageable pageable);
-    List<ProductLine> findByIdLessThanOrderByIdDesc(Integer lastId, Pageable pageable);
+    List<ProductLine> findByProductLineIdGreaterThanOrderByProductLineIdAsc(Integer lastId, Pageable pageable);
+    List<ProductLine> findByProductLineIdLessThanOrderByProductLineIdDesc(Integer lastId, Pageable pageable);
 }

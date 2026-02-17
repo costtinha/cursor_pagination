@@ -110,10 +110,10 @@ public class EmployeeService {
         if(lastId == null){
             employees = repository.findAll(pageable).getContent();
         } else if (direction == PageDirection.NEXT) {
-            employees = repository.findByIdGreaterThanOrderByIdAsc(lastId,pageable);
+            employees = repository.findByEmployeeIdGreaterThanOrderByEmployeeIdAsc(lastId,pageable);
         }
         else {
-            employees = repository.findByIdLessThanOrderByIdDesc(lastId,pageable);
+            employees = repository.findByEmployeeIdLessThanOrderByEmployeeIdDesc(lastId,pageable);
             Collections.reverse(employees);
         }
         boolean hasNext = employees.size() > pageSize;

@@ -59,10 +59,10 @@ public class OfficeService {
         if(lastId == null){
             offices = repository.findAll(pageable).getContent();
         } else if(direction == PageDirection.NEXT) {
-            offices = repository.findByIdGreaterThanOrderByIdAsc(lastId,pageable);
+            offices = repository.findByOfficeIdGreaterThanOrderByOfficeIdAsc(lastId,pageable);
         }
         else {
-            offices = repository.findByIdLessThanOrderByIdDesc(lastId, pageable);
+            offices = repository.findByOfficeIdLessThanOrderByOfficeIdDesc(lastId, pageable);
             Collections.reverse(offices);
         }
 

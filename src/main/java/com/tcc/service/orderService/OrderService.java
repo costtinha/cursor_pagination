@@ -93,10 +93,10 @@ public class OrderService {
         if(lastId == null){
             orders = repository.findAll(pageable).getContent();
         } else if (direction == PageDirection.NEXT) {
-            orders = repository.findByIdGreaterThanOrderByIdAsc(lastId,pageable);
+            orders = repository.findByOrderIdGreaterThanOrderByOrderIdAsc(lastId,pageable);
         }
         else {
-            orders = repository.findByIdLessThanOrderByIdDesc(lastId,pageable);
+            orders = repository.findByOrderIdLessThanOrderByOrderIdDesc(lastId,pageable);
             Collections.reverse(orders);
         }
 

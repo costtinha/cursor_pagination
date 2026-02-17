@@ -97,10 +97,10 @@ public class CustomerService {
             customers = repository.findAll(pageable).getContent();
         }
         else if(direction == PageDirection.NEXT){
-            customers = repository.findByIdGreaterThanOrderByIdAsc(lastId,pageable);
+            customers = repository.findByCustomerIdGreaterThanOrderByCustomerIdAsc(lastId,pageable);
         }
         else {
-            customers = repository.findByIdLessThanOrderByIdDesc(lastId,pageable);
+            customers = repository.findByCustomerIdLessThanOrderByCustomerIdDesc(lastId,pageable);
             Collections.reverse(customers);
         }
         boolean hasNext = customers.size() > pageSize;

@@ -12,7 +12,7 @@ spring:
         format_sql: true
 
   redis:
-    host: ${SPRING_REDIS_HOST:localhost}
+    host: ${SPRING_REDIS_HOST:redis}
     port: ${SPRING_REDIS_PORT:6379}
     password: ${SPRING_REDIS_PASSWORD:""}
     timeout: ${SPRING_REDIS_TIMEOUT:2000}
@@ -28,6 +28,7 @@ logging:
     graphql: DEBUG
     com.graphql.project: DEBUG
     org.springframework.web: DEBUG
+    io.github.resilience4j: DEBUG
 
 resilience4j:
   ratelimiter:
@@ -45,3 +46,15 @@ resilience4j:
         limitForPeriod: 80
         limitRefreshPeriod: 1m
         timeoutDuration: 0
+        registerHealthIndicator: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+jwt:
+  secret: GD4LU3Po7tDcUfXmq+uN3AcoLfu2s7odrRo/h9+AB7SQDFGdMUWV68KhRn7R4

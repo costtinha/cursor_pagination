@@ -92,10 +92,10 @@ public class ProductLineService{
             productLines = repository.findAll(pageable).getContent();
         }
         else if (direction == PageDirection.NEXT) {
-            productLines = repository.findByIdGreaterThanOrderByIdAsc(lastId, pageable);
+            productLines = repository.findByProductLineIdGreaterThanOrderByProductLineIdAsc(lastId, pageable);
         }
         else{
-            productLines = repository.findByIdLessThanOrderByIdDesc(lastId, pageable);
+            productLines = repository.findByProductLineIdLessThanOrderByProductLineIdDesc(lastId, pageable);
             Collections.reverse(productLines);
         }
         boolean hasNext = productLines.size() > pageSize;

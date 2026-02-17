@@ -31,8 +31,8 @@ public class OfficeController extends RateLimitedController {
 
 
     @GetMapping("/offices")
-    @RateLimiter(name = "publicListLimiter", fallbackMethod = "listFallBack")
-    public ResponseEntity<Page<OfficeDto>> listAllOffices(@PageableDefault(size = 20, sort = "id")Pageable pageable){
+    //@RateLimiter(name = "publicListLimiter", fallbackMethod = "listFallBack")
+    public ResponseEntity<Page<OfficeDto>> listAllOffices(@PageableDefault(size = 20, sort = "officeId")Pageable pageable){
         return ResponseEntity.ok(service.allOffices(pageable));
     }
 

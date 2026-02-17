@@ -35,7 +35,9 @@ public class AuthController {
         }
         User user = new User();
         user.setUsername(request.username());
-        user.setPassword(request.password());
+        String encodedPassword = passwordEncoder.encode(request.password());
+        user.setPassword(encodedPassword);
+
         repository.save(user);
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);

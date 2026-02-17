@@ -3,6 +3,7 @@ package com.tcc.service.authService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +12,8 @@ import java.util.Date;
 
 @Service
 public class JwtService {
-    private static final String SECRET_KEY = "your-secret-key";
+    @Value("${jwt.secret}")
+    private String secretKey;
     private static final long ACCESS_EXPIRATION = 1000 * 60 * 15;
     private static final long REFRESH_EXPIRATION = 1000 * 60 * 60 * 7;
 
@@ -30,14 +32,14 @@ public class JwtService {
                 .setSubject(user.getUsername())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()),SignatureAlgorithm.HS256)
+                .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()),SignatureAlgorithm.HS256)
                 .compact();
 
     }
 
     public String extractUsername(String token){
         return Jwts.parserBuilder()
-                .setSigningKey(SECRET_KEY.getBytes())
+                .setSigningKey(secretKey.getBytes())
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
@@ -55,7 +57,7 @@ public class JwtService {
 
     private boolean isTokenExpired(String token){
         return Jwts.parserBuilder()
-                .setSigningKey(SECRET_KEY.getBytes())
+                .setSigningKey(secretKey.getBytes())
                 .build()
                 .parseClaimsJws(token)
                 .getBody()

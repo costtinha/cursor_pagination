@@ -97,10 +97,10 @@ public class ProductService {
             products = repository.findAll(pageable).getContent();
         }
         else if (direction == PageDirection.NEXT) {
-            products = repository.findByIdGreaterThanOrderByIdAsc(lastId,pageable);
+            products = repository.findByProductCodeGreaterThanOrderByProductCodeAsc(lastId,pageable);
         }
         else {
-            products = repository.findByIdLessThanOrderByIdDesc(lastId,pageable);
+            products = repository.findByProductCodeLessThanOrderByProductCodeDesc(lastId,pageable);
             Collections.reverse(products);
         }
         boolean hasNext = products.size() > pageSize;
