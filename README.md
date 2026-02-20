@@ -173,53 +173,28 @@ curl "http://localhost:8080/public/api/order_product/keyset?cursor=eyJ...&size=1
 ## 📁 Estrutura do Projeto
 
 ```
-src/main/java/com/costtinha/security/
-├── cache/ #Repositorios de memória cache Redis
-├── components/
-│   └── CursorCodec.java 
-├── config/
-│   └── SecurityConfig.java   # Configuração do Spring Security
-│   └── JwtFilter.java
-│   └── OpenApiConfig.java
-│   └── RepositoryConfig.java
-├── controller/
-│   ├── AuthController.java          # Endpoints de autenticação
-│   └── EntityController.java          # Endpoints de entidades
-│   └── RateLimitedController.java 
-├── dto/
-│   ├── AuthResponse.java                    # Entidade usuário
-│   └── LoginRequest.java                    # Enum de roles
-│   └── RegisterRequest.java
-│   └── TokenResponse.java
-│   └── CursorPageResponse.java
-│   └── EntityCursor.java
-│   └── EntityDtos.java
-├──entity/
-│   └── Entities.java
-│   └── EntitiesCache.java
-│   └── User.java
-├── exception/
-│   └── AuthException.java
-│   └── ConflictException.java
-│   └── GlobalExceptionHandler.java
-│   └── ResourceNotFoundException.java
-│   └── ResourceBadRequest.java
-├── exception/
-│   └── PageDirection.java
-├── persistance/
-│   └── EntityRepository.java          # Repositório JPA
+src/main/java/com.tcc/
+├── cache/                # Repositórios Redis (ex: OfficeCacheRepository, OrderProductCacheRepository)
+├── components/           # CursorCodec (encode/decode Base64+JSON)
+├── config/               # SecurityConfig, JwtFilter, OpenApiConfig, RepositoryConfig
+├── controller/           # OfficeController, OrderProductController, RateLimitedController (base)
+├── dtos/                 # OfficeDto, OrderProductDto, CursorPageResponse
+│   └── cursors/          # OfficeCursor, OrderProductCursor
+├── entity/               # Office, OrderProduct, OrderProductKey (composite), User, etc.
+├── exception/            # ResourceNotFoundException, ConflictException, GlobalExceptionHandler
+├── pagination/           # PageDirection (NEXT/PREV enum)
+├── persistance/          # OfficeRepository, OrderProductRepository (JPA + @Query keyset)
 ├── service/
-│   ├── CustomUserDetailsService.java             # Lógica de autenticação
-│   ├── JwtService.java              # Geração/validação de tokens
-│   └── EntityService.java             # Lógica de negócio
-└── CodeApplication.java         # Classe principal
+│   ├── authService/      # JwtService, CustomUserDetailsService
+│   ├── officeService/    # OfficeService (CRUD + cursor simples)
+│   └── orderProductService/ # OrderProductService (CRUD + cursor composto)
+└── CodeApplication.java  # Classe principal
 ```
 
-> ⚠️ **Nota:** Ajuste os nomes dos pacotes e classes conforme a estrutura real do seu projeto.
 
 ---
 
-## 📚 Aprendizados
+## 📚 Decisões e Aprendizados
 
 Este projeto foi desenvolvido como estudo prático dos seguintes conceitos:
 
