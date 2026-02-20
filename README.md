@@ -1,96 +1,95 @@
-# 🔐 Spring Security - Autenticação e Autorização
+# 🛒 API de Gerenciamento de Vendas com Cursor Pagination Avançada
 
-API REST com implementação de autenticação e autorização utilizando **Spring Security**, **JWT** e **Spring Boot**. O projeto demonstra boas práticas de segurança em aplicações Java, incluindo controle de acesso baseado em roles, proteção de endpoints e containerização com Docker.
+API REST Spring Boot para gerenciamento de **vendas** (orders, products, offices/filiais, order_products como relação).  
+Implementa **cursor-based pagination** (keyset) em entidades com **chave primária simples** e **chave composta**, cache Redis por entidade, rate limiting com Resilience4j, autenticação JWT stateless e containerização completa.
+
+O foco é **escalabilidade** em listas grandes (ex: itens de pedidos), evitando os problemas de performance do offset/limit tradicional.
 
 ---
 
 ## 📋 Índice
 
+- [Sobre o projeto](#-sobre-o-projeto)
+- [Por que cursor pagination?](#-por-que-cursor-pagination)
 - [Tecnologias](#-tecnologias)
-- [Arquitetura](#-arquitetura)
-- [Funcionalidades](#-funcionalidades)
+- [Funcionalidades principais](#-funcionalidades-principais)
 - [Pré-requisitos](#-pré-requisitos)
 - [Instalação e Execução](#-instalação-e-execução)
 - [Endpoints da API](#-endpoints-da-api)
 - [Exemplos de Requisições](#-exemplos-de-requisições)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
-- [Aprendizados](#-aprendizados)
+- [Decisões & Aprendizados](#-decisões--aprendizados)
+- [Documentação Swagger](#-documentação-swagger)
 - [Licença](#-licença)
+
+---
+
+## 🚀 Sobre o projeto
+
+Sistema backend para gerenciar **vendas** integrando clientes, construtores de produtos, filiais (offices) e itens de pedidos (order_product).  
+Destaque para paginação eficiente via **cursor** (keyset pagination) em tabelas com chave composta (ex: `orderId + productId`), cache L2 com Redis e proteção contra abuso.
+
+Perfeito para demonstrar arquitetura escalável em portfólio ou entrevistas técnicas.
+
+---
+
+## ⚡ Por que cursor pagination?
+
+| Abordagem          | Performance em escala | Estabilidade (duplicatas/pulos) | Suporte a chave composta | Complexidade |
+|--------------------|-----------------------|----------------------------------|---------------------------|--------------|
+| Offset + Limit     | Degrada (full scan)   | Pode pular/duplicar              | Simples                   | Baixa        |
+| Cursor (keyset)    | Constante (index seek)| Estável com ordenação única      | Sim (com predicados aninhados) | Média-Alta   |
+
+Implementado com **predicados aninhados** para chaves compostas (ex: `(orderId > x) OR (orderId = x AND productId > y)`).
 
 ---
 
 ## 🛠 Tecnologias
 
-| Tecnologia | Versão | Descrição |
-|---|---|---|
-| Java | 17+ | Linguagem principal |
-| Spring Boot | 3.x | Framework base |
-| Spring Security | 6.x | Autenticação e autorização |
-| Spring Data JPA | 3.x | Persistência de dados |
-| Maven | 3.9+ | Gerenciamento de dependências |
-| Docker | 24+ | Containerização |
-| Docker Compose | 2.x | Orquestração de containers |
-| PostgreSQL | 15+ | Banco de dados relacional |
+| Tecnologia          | Versão     | Finalidade principal                              |
+|---------------------|------------|---------------------------------------------------|
+| Java                | 17+        | Linguagem                                         |
+| Spring Boot         | 3.x        | Framework principal                               |
+| Spring Security     | 6.x        | JWT stateless + refresh                           |
+| Spring Data JPA     | 3.x        | Persistência + queries customizadas para keyset   |
+| PostgreSQL          | 15+        | Banco principal                                   |
+| Redis               | —          | Cache por entidade (Offices, OrderProducts, etc.) |
+| Resilience4j        | —          | Rate limiting granular                            |
+| OpenAPI / Swagger   | 2.x        | Documentação interativa com bearer JWT            |
+| Docker + Compose    | 24+ / 2.x  | Containerização (app + pg + redis)                |
 
 ---
 
-## 🏗 Arquitetura
+## ✨ Funcionalidades principais
 
-```
-┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   Cliente    │────▸│  Security Filter │────▸│   Controller    │
-│  (Postman)   │     │     Chain        │     │                 │
-└─────────────┘     └──────────────────┘     └────────┬────────┘
-                           │                          │
-                    ┌──────┴──────┐            ┌──────┴──────┐
-                    │    JWT      │            │   Service   │
-                    │  Validation │            │    Layer    │
-                    └─────────────┘            └──────┬──────┘
-                                                      │
-                                               ┌──────┴──────┐
-                                               │ Repository  │
-                                               │   (JPA)     │
-                                               └──────┬──────┘
-                                                      │
-                                               ┌──────┴──────┐
-                                               │ PostgreSQL  │
-                                               └─────────────┘
-```
-
----
-
-## ✨ Funcionalidades
-
-- **Registro de usuários** com senha criptografada (BCrypt)
-- **Login com geração de token JWT**
-- **Autorização baseada em roles** (ADMIN, USER)
-- **Proteção de endpoints** por nível de acesso
-- **Filtro de autenticação** customizado na Security Filter Chain
-- **Containerização** completa com Docker e Docker Compose
-
+- CRUD completo para entidades com relacionamentos complexos.
+- Paginação por cursor com suporte a **chave composta** (ex: OrderProduct)
+- Cache de leitura individual com Redis (write-behind)
+- Rate limiting separado (leitura pública, item único, escrita)
+- Autenticação JWT (access + refresh) + UserDetails custom
+- Tratamento global de exceções (Problem Details RFC 7807)
+- Cursor codificado em Base64(JSON) para evolução futura
+- Swagger com esquema bearer JWT
 ---
 
 ## 📦 Pré-requisitos
 
-Certifique-se de ter instalado:
-
-- **Java 17+** → [Download](https://adoptium.net/)
-- **Maven 3.9+** → [Download](https://maven.apache.org/download.cgi)
-- **Docker e Docker Compose** → [Download](https://www.docker.com/products/docker-desktop/)
+- Java 17+
+- Maven 3.9+
+- Docker + Docker Compose
 
 ---
 
 ## 🚀 Instalação e Execução
 
-### Com Docker (recomendado)
+### Com Docker Compose (recomendado)
 
 ```bash
-# Clone o repositório
-git clone https://github.com/costtinha/estudos_spring_security.git
-cd estudos_spring_security
+git clone https://github.com/costtinha/cursor_pagination.git
+cd cursor_pagination
+docker compose up -d --build
 
-# Suba os containers (aplicação + banco de dados)
-docker-compose up -d
+## 🚀 Instalação e Execução
 
 # A API estará disponível em http://localhost:8080
 ```
@@ -99,11 +98,11 @@ docker-compose up -d
 
 ```bash
 # Clone o repositório
-git clone https://github.com/costtinha/estudos_spring_security.git
-cd estudos_spring_security
+git clone https://github.com/costtinha/cursor_pagination.git
+cd cursor_pagination
 
 # Configure o banco de dados PostgreSQL local
-# (ajuste as credenciais em src/main/resources/application.properties)
+# (ajuste as credenciais em src/main/resources/application.yml)
 
 # Build e execução
 ./mvnw spring-boot:run
@@ -115,19 +114,20 @@ cd estudos_spring_security
 
 ### Públicos (sem autenticação)
 
-| Método | Endpoint | Descrição |
-|---|---|---|
-| `POST` | `/auth/register` | Registrar novo usuário |
-| `POST` | `/auth/login` | Autenticar e obter token JWT |
+| Método            | Endpoint          | Descrição          | Cursor? |
+|-------------------|-------------------|--------------------|---------|
+| `GET`             | `/offices`        | Lista offset-based | Não     |
+| `GET`             | `/offices/keyset` | Lista cursor-based | Sim     |
+| `GET`             | `/offices/{id}`   | Com cache          | Não     |
+| `POST/PUT/DELETE` | `/offices/...`    | CRUD               | Não     |
 
-### Protegidos (requer token JWT)
+| Método | Endpoint                               | Descrição          | Cursor |
+|--------|----------------------------------------|--------------------|--------|
+| `GET`  | `/order_product`                       | Lista offset-based | Não    |
+| `GET`  | `/order_product/keyset`                | Lista cursor-based | Não    |
+| `GET`  | `/order_product/{orderId}/{productId}` | Com cache          | Não    |
+| `GET`   | `/order_product/....`                   | CRUD               | Não    |
 
-| Método | Endpoint | Role | Descrição |
-|---|---|---|---|
-| `GET` | `/users` | `ADMIN` | Listar todos os usuários |
-| `GET` | `/users/{id}` | `USER`, `ADMIN` | Buscar usuário por ID |
-
-> ⚠️ **Nota:** Adapte a tabela acima conforme os endpoints reais da sua aplicação.
 
 ---
 
@@ -136,48 +136,37 @@ cd estudos_spring_security
 ### Registrar usuário
 
 ```bash
-curl -X POST http://localhost:8080/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "daniel",
-    "password": "senha123",
-    "role": "USER"
-  }'
+curl "http://localhost:8080/public/api/order_product/keyset?size=10&direction=NEXT"
 ```
+```bash
+curl "http://localhost:8080/public/api/order_product/keyset?cursor=eyJ...&size=10&direction=NEXT"
+```
+
 
 **Resposta (201 Created):**
 ```json
 {
-  "id": 1,
-  "username": "daniel",
-  "role": "USER"
+  "content": [ ... array de OrderProductDto ... ],
+  "nextCursor": "eyJ...base64...",
+  "prevCursor": "eyJ...base64...",
+  "hasNext": true,
+  "hasPrev": true
 }
 ```
-
-### Login
+### Criar OrderProduct
 
 ```bash
-curl -X POST http://localhost:8080/auth/login \
+ curl -X POST http://localhost:8080/public/api/order_product \
+  -H "Authorization: Bearer SEU_JWT_AQUI" \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "daniel",
-    "password": "senha123"
+    "orderId": 1001,
+    "productId": 5,
+    "qnty": 3,
+    "priceEach": 149.90
   }'
 ```
 
-**Resposta (200 OK):**
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-### Acessar endpoint protegido
-
-```bash
-curl -X GET http://localhost:8080/users \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
 
 ---
 
@@ -185,26 +174,45 @@ curl -X GET http://localhost:8080/users \
 
 ```
 src/main/java/com/costtinha/security/
+├── cache/ #Repositorios de memória cache Redis
+├── components/
+│   └── CursorCodec.java 
 ├── config/
-│   └── SecurityConfig.java          # Configuração do Spring Security
+│   └── SecurityConfig.java   # Configuração do Spring Security
+│   └── JwtFilter.java
+│   └── OpenApiConfig.java
+│   └── RepositoryConfig.java
 ├── controller/
 │   ├── AuthController.java          # Endpoints de autenticação
-│   └── UserController.java          # Endpoints de usuários
+│   └── EntityController.java          # Endpoints de entidades
+│   └── RateLimitedController.java 
 ├── dto/
-│   ├── LoginRequest.java            # DTO de login
-│   └── RegisterRequest.java         # DTO de registro
-├── entity/
-│   ├── User.java                    # Entidade usuário
-│   └── Role.java                    # Enum de roles
-├── filter/
-│   └── JwtAuthenticationFilter.java # Filtro JWT na filter chain
-├── repository/
-│   └── UserRepository.java          # Repositório JPA
+│   ├── AuthResponse.java                    # Entidade usuário
+│   └── LoginRequest.java                    # Enum de roles
+│   └── RegisterRequest.java
+│   └── TokenResponse.java
+│   └── CursorPageResponse.java
+│   └── EntityCursor.java
+│   └── EntityDtos.java
+├──entity/
+│   └── Entities.java
+│   └── EntitiesCache.java
+│   └── User.java
+├── exception/
+│   └── AuthException.java
+│   └── ConflictException.java
+│   └── GlobalExceptionHandler.java
+│   └── ResourceNotFoundException.java
+│   └── ResourceBadRequest.java
+├── exception/
+│   └── PageDirection.java
+├── persistance/
+│   └── EntityRepository.java          # Repositório JPA
 ├── service/
-│   ├── AuthService.java             # Lógica de autenticação
+│   ├── CustomUserDetailsService.java             # Lógica de autenticação
 │   ├── JwtService.java              # Geração/validação de tokens
-│   └── UserService.java             # Lógica de negócio
-└── SecurityApplication.java         # Classe principal
+│   └── EntityService.java             # Lógica de negócio
+└── CodeApplication.java         # Classe principal
 ```
 
 > ⚠️ **Nota:** Ajuste os nomes dos pacotes e classes conforme a estrutura real do seu projeto.
@@ -215,12 +223,13 @@ src/main/java/com/costtinha/security/
 
 Este projeto foi desenvolvido como estudo prático dos seguintes conceitos:
 
-- **Security Filter Chain** — como o Spring Security intercepta e processa requisições HTTP
-- **Autenticação stateless com JWT** — geração, assinatura e validação de tokens
-- **BCrypt** — hashing seguro de senhas com salt automático
-- **Role-Based Access Control (RBAC)** — controle de acesso granular por perfil de usuário
-- **SecurityContext** — como o Spring mantém informações do usuário autenticado durante a requisição
-- **Docker multi-stage build** — containerização eficiente de aplicações Java
+Cursor simples (ex: officeId) vs composto (ex: orderId + productId)
+Predicados JPA aninhados para chaves compostas → (orderId > x) OR (orderId = x AND productId > y)
+Cache Redis por entidade com chave custom (ex: "orderId: 1001,productId: 5")
+Rate limiting granular (público/leitura/escrita)
+Cursor em Base64(JSON) → permite adicionar mais campos no futuro (ex: timestamp)
+Ordenação estável e indexada obrigatória para performance
+Problem Details padronizado para erros
 
 ---
 
