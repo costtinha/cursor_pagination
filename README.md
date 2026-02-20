@@ -198,13 +198,13 @@ src/main/java/com.tcc/
 
 Este projeto foi desenvolvido como estudo prático dos seguintes conceitos:
 
-Cursor simples (ex: officeId) vs composto (ex: orderId + productId)
-Predicados JPA aninhados para chaves compostas → (orderId > x) OR (orderId = x AND productId > y)
-Cache Redis por entidade com chave custom (ex: "orderId: 1001,productId: 5")
-Rate limiting granular (público/leitura/escrita)
-Cursor em Base64(JSON) → permite adicionar mais campos no futuro (ex: timestamp)
-Ordenação estável e indexada obrigatória para performance
-Problem Details padronizado para erros
+- Cursor simples (ex: officeId) vs composto (ex: orderId + productId)
+- Predicados JPA aninhados para chaves compostas → (orderId > x) OR (orderId = x AND productId > y)
+- Cache Redis por entidade com chave custom (ex: "orderId: 1001,productId: 5")
+- Rate limiting granular (público/leitura/escrita)
+- Cursor em Base64(JSON) → permite adicionar mais campos no futuro (ex: timestamp)
+- Ordenação estável e indexada obrigatória para performance
+- Problem Details padronizado para erros
 
 ---
 
