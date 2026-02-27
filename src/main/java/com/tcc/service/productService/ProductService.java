@@ -103,17 +103,22 @@ public class ProductService {
             products = repository.findByProductCodeLessThanOrderByProductCodeDesc(lastId,pageable);
             Collections.reverse(products);
         }
-        boolean hasNext = products.size() > pageSize;
+        boolean hasNext;
         boolean hasPrev;
         if (direction == PageDirection.NEXT){
+            hasNext = products.size() > pageSize;
             hasPrev = lastId != null;
+            if (hasNext){
+                products = products.subList(0,pageSize);
+            }
         }else {
-            hasPrev = !products.isEmpty();
+            hasNext = lastId != null;
+            hasPrev = products.size() > pageSize;
+            if (hasPrev){
+                products = products.subList(1,products.size());
+            }
         }
 
-        if (hasNext){
-            products = products.subList(0,pageSize);
-        }
 
         String nextCursor = null;
         String prevCursor = null;
@@ -126,6 +131,12 @@ public class ProductService {
         }
         if (lastId == null){
             hasPrev = false;
+            prevCursor = null;
+        }
+        if (!hasNext){
+            nextCursor = null;
+        }
+        if (!hasPrev){
             prevCursor = null;
         }
 

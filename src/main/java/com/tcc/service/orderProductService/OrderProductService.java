@@ -101,16 +101,21 @@ public class OrderProductService {
             orderProducts = repository.findPreviousKeySet(orderId,productId,pageable);
             Collections.reverse(orderProducts);
         }
-        boolean hasNext = orderProducts.size() > pageSize;
+        boolean hasNext;
         boolean hasPrev;
         if (direction == PageDirection.NEXT){
+            hasNext = orderProducts.size() > pageSize;
             hasPrev = orderId != null && productId != null;
+            if (hasNext){
+                orderProducts = orderProducts.subList(0,pageSize);
+            }
         }
         else {
-            hasPrev = !orderProducts.isEmpty();
-        }
-        if (hasNext){
-            orderProducts = orderProducts.subList(0,pageSize);
+            hasNext = orderId != null && productId != null;
+            hasPrev = orderProducts.size() > pageSize;
+            if (hasPrev){
+                orderProducts = orderProducts.subList(1,orderProducts.size());
+            }
         }
 
         String nextCursor = null;
@@ -127,6 +132,12 @@ public class OrderProductService {
         if (orderId == null && productId == null){
             hasPrev = false;
             prevCursor = null;
+        }
+        if (!hasPrev){
+            prevCursor= null;
+        }
+        if(!hasNext){
+            nextCursor = null;
         }
 
         List<OrderProductDto> dtos = orderProducts.stream()

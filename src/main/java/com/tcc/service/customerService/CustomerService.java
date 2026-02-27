@@ -103,16 +103,21 @@ public class CustomerService {
             customers = repository.findByCustomerIdLessThanOrderByCustomerIdDesc(lastId,pageable);
             Collections.reverse(customers);
         }
-        boolean hasNext = customers.size() > pageSize;
+        boolean hasNext;
         boolean hasPrev;
         if (direction == PageDirection.NEXT){
+            hasNext = customers.size() > pageSize;
             hasPrev = lastId != null;
+            if (hasNext){
+                customers = customers.subList(0,pageSize);
+            }
         }
         else{
-            hasPrev = !customers.isEmpty();
-        }
-        if (hasNext){
-            customers = customers.subList(0,pageSize);
+            hasPrev = customers.size() > pageSize;
+            hasNext = lastId != null;
+            if (hasPrev){
+                customers = customers.subList(1,customers.size());
+            }
         }
         String nextCursor = null;
         String prevCursor = null;
@@ -126,6 +131,12 @@ public class CustomerService {
         if(lastId == null){
             hasPrev = false;
             prevCursor = null;
+        }
+        if (!hasPrev){
+            prevCursor= null;
+        }
+        if(!hasNext){
+            nextCursor = null;
         }
 
 

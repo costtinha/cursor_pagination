@@ -11,6 +11,8 @@ import com.tcc.exception.ResourceNotFoundException;
 import com.tcc.pagination.PageDirection;
 import com.tcc.persistance.OfficeRepository;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +24,7 @@ import java.util.List;
 @Service
 @Transactional
 public class OfficeService {
+    private static final Logger log = LoggerFactory.getLogger(OfficeService.class);
     private final OfficeMapper mapper;
     private final OfficeRepository repository;
     private final OfficeCacheRepository cacheRepository;
@@ -66,16 +69,21 @@ public class OfficeService {
             Collections.reverse(offices);
         }
 
-        boolean hasNext = offices.size() > pageSize;
+        boolean hasNext;
         boolean hasPrev;
         if (direction == PageDirection.NEXT){
+            hasNext = offices.size() > pageSize;
             hasPrev = lastId != null;
+            if (hasNext){
+                offices = offices.subList(0,pageSize);
+            }
         }
         else{
-            hasPrev = ! offices.isEmpty();
-        }
-        if (hasNext){
-            offices = offices.subList(0,pageSize);
+            hasNext = lastId != null;
+            hasPrev = offices.size() > pageSize;
+            if (hasPrev){
+                offices = offices.subList(1,offices.size());
+            }
         }
 
         String nextCursor = null;
@@ -91,6 +99,12 @@ public class OfficeService {
         if (lastId == null){
             hasPrev = false;
             prevCursor = null;
+        }
+        if (!hasPrev){
+            prevCursor= null;
+        }
+        if(!hasNext){
+            nextCursor = null;
         }
 
         List<OfficeDto> dtos = offices.stream()
@@ -116,9 +130,15 @@ public class OfficeService {
         if (repository.existsByEmail(dto.email())) {
             throw new ConflictException("There is already an office with this email: " + dto.email());
         }
-        Office office = mapper.dtoToOffice(dto);
-        cacheRepository.save(mapper.officeToCache(office));
-        return mapper.officeToDto(repository.save(office));
+        Office saved = repository.save(mapper.dtoToOffice(dto));
+
+        try {
+            cacheRepository.save(mapper.officeToCache(saved));
+        } catch (Exception e) {
+            log.warn("Redis unavailable, skipping cache for office id={}",saved.getOfficeId());
+        }
+
+        return mapper.officeToDto(saved);
     }
 
     public void deleteById(int id) {

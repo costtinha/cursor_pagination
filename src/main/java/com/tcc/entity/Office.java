@@ -16,7 +16,7 @@ public class Office {
     @Column(nullable = false,length = 100)
     private String officeName;
 
-    @Column(unique = true,nullable = false,insertable = false)
+    @Column(unique = true,nullable = false)
     private String email;
 
     private String phone;

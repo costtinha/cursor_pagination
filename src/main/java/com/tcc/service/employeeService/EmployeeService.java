@@ -116,16 +116,21 @@ public class EmployeeService {
             employees = repository.findByEmployeeIdLessThanOrderByEmployeeIdDesc(lastId,pageable);
             Collections.reverse(employees);
         }
-        boolean hasNext = employees.size() > pageSize;
+        boolean hasNext;
         boolean hasPrev;
         if (direction == PageDirection.NEXT){
+            hasNext = employees.size() > pageSize;
             hasPrev = lastId != null;
+            if(hasNext){
+                employees = employees.subList(0,pageSize);
+            }
         }
         else {
+            hasNext = lastId != null;
             hasPrev = !employees.isEmpty();
-        }
-        if (hasNext){
-            employees = employees.subList(0,pageSize);
+            if (hasPrev){
+                employees = employees.subList(1,employees.size());
+            }
         }
 
         String nextCursor = null;
@@ -140,6 +145,12 @@ public class EmployeeService {
         if (lastId == null){
             hasPrev = false;
             prevCursor = null;
+        }
+        if (!hasPrev){
+            prevCursor= null;
+        }
+        if(!hasNext){
+            nextCursor = null;
         }
 
 

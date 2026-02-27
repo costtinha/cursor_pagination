@@ -1,6 +1,7 @@
 package com.tcc.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -59,6 +60,18 @@ public class GlobalExceptionHandler {
         problem.setProperty("path",request.getRequestURI());
         return problem;
 
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request){
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                "Database constraint violation"
+        );
+        problemDetail.setTitle("Conflict");
+        problemDetail.setProperty("errorCode","CONFLICT");
+        problemDetail.setProperty("path",request.getRequestURI());
+        return problemDetail;
     }
 
 

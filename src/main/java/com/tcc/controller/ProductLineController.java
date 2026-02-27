@@ -8,6 +8,8 @@ import com.tcc.pagination.PageDirection;
 import com.tcc.service.productLineService.ProductLineService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,7 @@ import java.util.List;
 public class ProductLineController extends RateLimitedController {
     private final ProductLineService service;
     private final CursorCodec cursorCodec;
+    private static final Logger log = LoggerFactory.getLogger(ProductLineController.class);
 
     public ProductLineController(ProductLineService service, CursorCodec cursorCodec) {
         this.service = service;
@@ -40,8 +43,13 @@ public class ProductLineController extends RateLimitedController {
     @PostMapping
     @RateLimiter(name = "writeLimiter", fallbackMethod = "itemFallBack")
     public ResponseEntity<ProductLineDto> saveProductLine(@Valid @RequestBody ProductLineDto dto){
-        ProductLineDto body = service.saveProductLine(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(body);
+        try {
+            ProductLineDto body = service.saveProductLine(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(body);
+        } catch (Exception e) {
+            log.error("saveProductLine failed", e); // this will show the real cause
+            throw e;
+        }
     }
 
     @PutMapping("/{id}")

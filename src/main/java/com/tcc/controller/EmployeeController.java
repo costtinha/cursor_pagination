@@ -53,7 +53,7 @@ public class EmployeeController extends RateLimitedController {
     }
 
     @DeleteMapping("/employees/{id}")
-    @RateLimiter(name = "writeBack",fallbackMethod = "voidFallBack")
+    @RateLimiter(name = "writeLimiter",fallbackMethod = "voidFallBack")
     public ResponseEntity<Void> deleteEmployee(@PathVariable("id") int id){
         service.deleteById(id);
         return ResponseEntity.noContent().build();
@@ -63,7 +63,7 @@ public class EmployeeController extends RateLimitedController {
     @RateLimiter(name = "publicListLimiter", fallbackMethod = "listFallBack")
     public ResponseEntity<CursorPageResponse<EmployeeResponseDto>> findEmployeesKeyset(@RequestParam(required = false) String cursor,
                                                                                        @RequestParam(defaultValue = "20") int size,
-                                                                                       @RequestParam(defaultValue = "NEXY")PageDirection direction){
+                                                                                       @RequestParam(defaultValue = "NEXT")PageDirection direction){
         Integer lastId = null;
                 if(cursor != null){
                     EmployeeCursor dto = cursorCodec.decode(cursor,EmployeeCursor.class);

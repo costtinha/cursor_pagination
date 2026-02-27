@@ -9,6 +9,8 @@ import com.tcc.entity.ProductLine;
 import com.tcc.exception.ResourceNotFoundException;
 import com.tcc.pagination.PageDirection;
 import com.tcc.persistance.ProductLineRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class ProductLineService{
+    private static final Logger log = LoggerFactory.getLogger(ProductLineService.class);
     private final ProductLineRepository repository;
     private final ProductLineCacheRepository cacheRepository;
     private final ProductLineMapper mapper;
@@ -61,11 +64,13 @@ public class ProductLineService{
     }
 
     public ProductLineDto saveProductLine(ProductLineDto dto) {
-        return mapper.cacheToProductLineDto(
-                cacheRepository.save(
-                        mapper.productLineToCache(
-                                repository.save(
-                                        mapper.dtoToProductLine(dto)))));
+        ProductLine saved = repository.save(mapper.dtoToProductLine(dto));
+        try {
+            cacheRepository.save(mapper.productLineToCache(saved));
+        } catch (Exception e) {
+            log.warn("Redis unavailable, skipping cache for productLine at id={}",saved.getProductLineId());
+        }
+        return mapper.productLineToDto(saved);
     }
 
     public ProductLineDto updateProductLine(int id, ProductLineDto dto) {
@@ -73,8 +78,14 @@ public class ProductLineService{
         oldPl.setDescInText(dto.descInText());
         oldPl.setImage(dto.image());
         oldPl.setDescInHtml(dto.descInHtml());
-        cacheRepository.save(mapper.productLineToCache(oldPl));
-        return mapper.productLineToDto(repository.save(oldPl));
+        oldPl = repository.save(oldPl);
+        try {
+            cacheRepository.save(mapper.productLineToCache(oldPl));
+        } catch (Exception e) {
+            log.warn("Redis unavailable, skipping cache for productLine at id={}",oldPl.getProductLineId());
+        }
+
+        return mapper.productLineToDto(oldPl);
     }
 
     public void deleteProductLineById(int id) {
@@ -98,18 +109,23 @@ public class ProductLineService{
             productLines = repository.findByProductLineIdLessThanOrderByProductLineIdDesc(lastId, pageable);
             Collections.reverse(productLines);
         }
-        boolean hasNext = productLines.size() > pageSize;
+        boolean hasNext;
         boolean hasPrevious;
         if (direction == PageDirection.NEXT){
+            hasNext = productLines.size() > pageSize;
             hasPrevious = lastId != null;
+            if(hasNext){
+                productLines = productLines.subList(0,pageSize);
+            }
         }else{
-            hasPrevious = !productLines.isEmpty();
+            hasNext = lastId != null;
+            hasPrevious = productLines.size() > pageSize;
+            if(hasPrevious){
+                productLines = productLines.subList(1,productLines.size());
+            }
 
         }
 
-        if (hasNext){
-            productLines = productLines.subList(0,pageSize);
-        }
         String nextCursor = null;
         String prevCursor= null;
         if (!productLines.isEmpty()){
@@ -122,6 +138,12 @@ public class ProductLineService{
         if (lastId == null){
             hasPrevious = false;
             prevCursor = null;
+        }
+        if (!hasPrevious){
+            prevCursor= null;
+        }
+        if(!hasNext){
+            nextCursor = null;
         }
 
 

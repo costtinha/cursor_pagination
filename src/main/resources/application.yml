@@ -14,14 +14,14 @@ spring:
   redis:
     host: ${SPRING_REDIS_HOST:redis}
     port: ${SPRING_REDIS_PORT:6379}
-    password: ${SPRING_REDIS_PASSWORD:""}
-    timeout: ${SPRING_REDIS_TIMEOUT:2000}
+    password: ${SPRING_REDIS_PASSWORD:}
+    timeout: ${SPRING_REDIS_TIMEOUT:2000ms}
     lettuce:
       pool:
         max-active: ${SPRING_REDIS_POOL_MAX_ACTIVE:10}
         max-idle: ${SPRING_REDIS_POOL_MAX_IDLE:5}
         min-idle: ${SPRING_REDIS_POOL_MIN_IDLE:1}
-        max-wait: ${SPRING_REDIS_POOL_MAX_WAIT:1000}
+        max-wait: ${SPRING_REDIS_POOL_MAX_WAIT:1000ms}
 logging:
   level:
     org.springframework.graphql: DEBUG
@@ -35,18 +35,33 @@ resilience4j:
     instances:
       publicListLimiter:
         limitForPeriod: 100
-        limitRefreshPeriod: 1m
+        limitRefreshPeriod: PT1M
         timeoutDuration: 0
         registerHealthIndicator: true
+        ignoreExceptions:
+          - com.tcc.exception.ConflictException
+          - com.tcc.exception.ResourceNotFoundException
+          - com.tcc.exception.ResourceBadRequest
+          - org.springframework.dao.DataIntegrityViolationException
       readLimiter:
         limitForPeriod: 500
-        limitRefreshPeriod: 1m
+        limitRefreshPeriod: PT1M
         timeoutDuration: 0
+        ignoreExceptions:
+          - com.tcc.exception.ConflictException
+          - com.tcc.exception.ResourceNotFoundException
+          - com.tcc.exception.ResourceBadRequest
+          - org.springframework.dao.DataIntegrityViolationException
       writeLimiter:
         limitForPeriod: 80
-        limitRefreshPeriod: 1m
+        limitRefreshPeriod: PT1M
         timeoutDuration: 0
         registerHealthIndicator: true
+        ignoreExceptions:
+          - com.tcc.exception.ConflictException
+          - com.tcc.exception.ResourceNotFoundException
+          - com.tcc.exception.ResourceBadRequest
+          - org.springframework.dao.DataIntegrityViolationException
 
 management:
   endpoints:

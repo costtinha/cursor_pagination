@@ -100,16 +100,21 @@ public class OrderService {
             Collections.reverse(orders);
         }
 
-        boolean hasNext = orders.size() > pageSize;
+        boolean hasNext;
         boolean hasPrev;
         if (direction == PageDirection.NEXT){
+            hasNext = orders.size() > pageSize;
             hasPrev = lastId != null;
+            if (hasNext){
+                orders = orders.subList(0,pageSize);
+            }
         }
         else {
-            hasPrev = !orders.isEmpty();
-        }
-        if (hasNext){
-            orders = orders.subList(0,pageSize);
+            hasNext = lastId != null;
+            hasPrev = orders.size() > pageSize;
+            if (hasPrev){
+                orders = orders.subList(1,orders.size());
+            }
         }
         String nextCursor = null;
         String prevCursor = null;
@@ -122,6 +127,13 @@ public class OrderService {
 
         if (lastId == null){
             hasPrev = false;
+            prevCursor = null;
+        }
+
+        if (!hasNext){
+            nextCursor = null;
+        }
+        if (!hasPrev){
             prevCursor = null;
         }
 
