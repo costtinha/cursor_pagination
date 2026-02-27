@@ -61,8 +61,8 @@ public class ProductService {
     }
 
     public ProductResponseDto saveProduct(ProductDto dto) {
-        Product product =mapper.dtoToProduct(dto);
-        cacheRepository.save(mapper.productToCache(repository.save(product)));
+        Product product =repository.save(mapper.dtoToProduct(dto));
+        cacheRepository.save(mapper.productToCache(product));
         return mapper.productToResponseDto(product);
     }
 

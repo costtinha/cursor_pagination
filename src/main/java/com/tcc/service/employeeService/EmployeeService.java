@@ -71,8 +71,8 @@ public class EmployeeService {
             throw new ConflictException("There is already an employee with the email: " + dto.email());
         }
         Employee employee = mapper.dtoToEmployee(dto);
-        cacheRepository.save(mapper.employeeToCache(employee));
         repository.save(employee);
+        cacheRepository.save(mapper.employeeToCache(employee));
         return mapper.employeeToResponseDto(employee);
     }
 
@@ -90,8 +90,9 @@ public class EmployeeService {
         office.setOfficeId(dto.office());
         oldEmployee.setReportsTo(reportsTo);
         oldEmployee.setOffice(office);
+        oldEmployee = repository.save(oldEmployee);
         cacheRepository.save(mapper.employeeToCache(oldEmployee));
-        return mapper.employeeToResponseDto(repository.save(oldEmployee));
+        return mapper.employeeToResponseDto(oldEmployee);
     }
 
     public void deleteById(int id) {

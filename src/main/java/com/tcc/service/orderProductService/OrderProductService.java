@@ -71,8 +71,9 @@ public class OrderProductService {
         OrderProduct oldOp = repository.findById(key).orElseThrow(() -> new ResourceNotFoundException("OrderProduct","orderId: " +orderId+ ",productId: "+productId));
         oldOp.setQnty(dto.qnty());
         oldOp.setPriceEach(dto.priceEach());
+        oldOp = repository.save(oldOp);
         cacheRepository.save(mapper.opToCache(oldOp));
-        return mapper.opToDto(repository.save(oldOp));
+        return mapper.opToDto(oldOp);
     }
 
     public void deleteOpById(int orderId, int productId) {

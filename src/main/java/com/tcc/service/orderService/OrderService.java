@@ -74,7 +74,8 @@ public class OrderService {
         Customer customer = new Customer();
         customer.setCustomerId(dto.customerId());
         oldOrder.setCustomerId(customer);
-        repository.save(oldOrder);
+        oldOrder = repository.save(oldOrder);
+        cacheRepository.save(mapper.orderToCache(oldOrder));
         return mapper.orderToOrderDto(oldOrder);
     }
 

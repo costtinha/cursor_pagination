@@ -76,7 +76,9 @@ public class CustomerService {
         oldCustomer.setPhone(dto.phone());
         oldCustomer.setState(dto.state());
         oldCustomer.setPostalCode(dto.postalCode());
-        return mapper.customerToResponseDto(repository.save(oldCustomer));
+        oldCustomer = repository.save(oldCustomer);
+        cacheRepository.save(mapper.customerToCache(oldCustomer));
+        return mapper.customerToResponseDto(oldCustomer);
 
     }
 
