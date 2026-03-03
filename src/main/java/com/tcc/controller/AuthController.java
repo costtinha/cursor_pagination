@@ -19,53 +19,26 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/public")
 public class AuthController {
-    private final UserRepository repository;
-    private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public AuthController(UserRepository repository, PasswordEncoder passwordEncoder, JwtService jwtService) {
-        this.repository = repository;
-        this.passwordEncoder = passwordEncoder;
+    public AuthController(JwtService jwtService) {
         this.jwtService = jwtService;
     }
     @PostMapping
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request){
-        if (repository.existsByUsername(request.username())){
-            throw new ConflictException("Username: " + request.username() +" already exists");
-        }
-        User user = new User();
-        user.setUsername(request.username());
-        String encodedPassword = passwordEncoder.encode(request.password());
-        user.setPassword(encodedPassword);
-
-        repository.save(user);
-        String accessToken = jwtService.generateAccessToken(user);
-        String refreshToken = jwtService.generateRefreshToken(user);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new AuthResponse(accessToken,refreshToken));
+                .body(jwtService.register(request));
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest body){
-        User user = repository.findByUsername(body.username()).orElseThrow(() -> new AuthException("Invalid credentials"));
-        if(!passwordEncoder.matches(body.password(),user.getPassword())){
-            throw new AuthException("Invalid credentials");
-        }
-        String accessToken = jwtService.generateAccessToken(user);
-        String refreshToken = jwtService.generateRefreshToken(user);
-        return ResponseEntity.ok(new AuthResponse(accessToken,refreshToken));
+        return ResponseEntity.ok(jwtService.login(body));
 
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<TokenResponse> refresh(@Valid @RequestBody RefreshRequest body){
-        String username = jwtService.extractUsername(body.refreshToken());
-        User user = repository.findByUsername(username).orElseThrow(() -> new AuthException("Invalid token"));
-        if(!jwtService.isTokenValid(body.refreshToken(), user)){
-            throw new AuthException("Refresh token invalid or expired");
-        }
-        String newAccessToken = jwtService.generateAccessToken(user);
-        return ResponseEntity.ok(new TokenResponse(newAccessToken));
+        return ResponseEntity.ok(jwtService.refresh(body));
 
     }
 

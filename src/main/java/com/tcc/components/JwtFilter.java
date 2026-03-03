@@ -1,13 +1,10 @@
-package com.tcc.config;
+package com.tcc.components;
 
 
 
 
-import io.jsonwebtoken.SignatureException;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import com.tcc.service.authService.JwtService;
+import io.jsonwebtoken.*;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,15 +15,18 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+@Component
 public class JwtFilter extends OncePerRequestFilter {
-    private static final String SECRET_KEY = "sua_key";
+    private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
-    public JwtFilter(UserDetailsService userDetailsService) {
+    public JwtFilter(JwtService jwtService, UserDetailsService userDetailsService) {
+        this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
     }
 
@@ -34,31 +34,28 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String header = request.getHeader("Authorization");
-        if(header != null && header.startsWith("Bearer")){
+        if(header != null && header.startsWith("Bearer ")){
             String token = header.substring(7);
             try {
-                Claims claims = Jwts.parser()
-                        .setSigningKey(SECRET_KEY)
-                        .parseClaimsJws(token)
-                        .getBody();
-                String username = claims.getSubject();
+                String username = jwtService.extractUsername(token);
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null){
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                    UsernamePasswordAuthenticationToken authToken= new UsernamePasswordAuthenticationToken(userDetails,
-                            null,userDetails.getAuthorities());
-                    authToken.setDetails( new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    if (jwtService.isTokenValid(token, userDetails)){
+                        UsernamePasswordAuthenticationToken authToken= new UsernamePasswordAuthenticationToken(userDetails,
+                                null,userDetails.getAuthorities());
+                        authToken.setDetails( new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
 
-
+                    }
                 }
             } catch (ExpiredJwtException e) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Token expirado");
+                response.getWriter().write("{\"error\": \"Token expired\"}");
                 return;
             }
-            catch (SignatureException | MalformedJwtException e){
+            catch (JwtException e){
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Token invalido");
+                response.getWriter().write("{\"error\": \"Invalid Token\"}");
                 return;
             }
         }
