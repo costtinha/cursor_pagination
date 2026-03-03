@@ -9,16 +9,20 @@ import com.tcc.entity.*;
 import com.tcc.exception.ResourceNotFoundException;
 import com.tcc.pagination.PageDirection;
 import com.tcc.persistance.OrderProductRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class OrderProductService {
+    private static final Logger log = LoggerFactory.getLogger(OrderProductService.class);
     private final OrderProductRepository repository;
     private final OrderProductCacheRepository cacheRepository;
     private final OrderProductMapper mapper;
@@ -40,11 +44,17 @@ public class OrderProductService {
     }
 
     public List<OrderProductDto> findOrderProduct() {
-        return repository.findAll()
-                .stream()
-                .peek(orderProduct -> cacheRepository.save(mapper.opToCache(orderProduct)))
-                .map(mapper::opToDto)
-                .collect(Collectors.toList());
+        List<OrderProduct> all = repository.findAll();
+        List<OrderProductDto> dto = new ArrayList<>();
+        for(OrderProduct op : all){
+            try {
+                cacheRepository.save(mapper.opToCache(op));
+            } catch (Exception e) {
+                log.warn("Redis unavailable, skipping cache for Order Product key={}",op.getOrderProductKey());
+            }
+            dto.add(mapper.opToDto(op));
+        }
+        return dto;
     }
 
     public OrderProductDto findOrderProductById(int orderId,int productId) {
@@ -79,11 +89,15 @@ public class OrderProductService {
     public void deleteOpById(int orderId, int productId) {
         OrderProductKey key = new OrderProductKey(orderId,productId);
         String stringKey = "orderId: "+orderId+",productId: "+productId;
-        if (repository.existsById(key)){
-            repository.deleteById(key);
-
+        if (!repository.existsById(key)){
+            throw new ResourceNotFoundException("OrderProduct",key);
         }
-        cacheRepository.deleteById(stringKey);
+        repository.deleteById(key);
+        try {
+            cacheRepository.deleteById(stringKey);
+        } catch (Exception e) {
+            log.warn("Redis unavailable, skipping deletion of Order Product id={}",stringKey);
+        }
 
 
     }

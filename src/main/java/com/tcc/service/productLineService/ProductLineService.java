@@ -15,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -46,11 +47,17 @@ public class ProductLineService{
 
 
     public List<ProductLineDto> findAllProductLine() {
-        return repository.findAll()
-                .stream()
-                .peek(productLine -> cacheRepository.save(mapper.productLineToCache(productLine)))
-                .map(mapper::productLineToDto)
-                .collect(Collectors.toList());
+        List<ProductLine> all = repository.findAll();
+        List<ProductLineDto> dto = new ArrayList<>();
+        for (ProductLine pl : all){
+            try{
+                cacheRepository.save(mapper.productLineToCache(pl));
+            } catch (Exception e) {
+                log.warn("Redis unavailable at the moment, skipping cache for id={}", pl.getProductLineId());
+            }
+            dto.add(mapper.productLineToDto(pl));
+        }
+        return dto;
     }
 
     public ProductLineDto findProductLineById(int id) {
@@ -89,10 +96,16 @@ public class ProductLineService{
     }
 
     public void deleteProductLineById(int id) {
-        if(repository.existsById(id)){
-            repository.deleteById(id);
+        if(!repository.existsById(id)){
+            throw new ResourceNotFoundException("Productline",id);
         }
-        cacheRepository.deleteById(id);
+        repository.deleteById(id);
+        try {
+            cacheRepository.deleteById(id);
+        } catch (Exception e) {
+            log.warn("Redis unavailable, skipping cache deletion for ProductLine id={}",id);
+        }
+
     }
 
     public CursorPageResponse<ProductLineDto> findAllProductLineKeyset(Integer lastId, int size, PageDirection direction) {

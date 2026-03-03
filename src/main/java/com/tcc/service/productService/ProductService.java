@@ -11,16 +11,20 @@ import com.tcc.entity.ProductLine;
 import com.tcc.exception.ResourceNotFoundException;
 import com.tcc.pagination.PageDirection;
 import com.tcc.persistance.ProductRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
+    private static final Logger log = LoggerFactory.getLogger(ProductService.class);
     private final ProductRepository repository;
     private final ProductCacheRepository cacheRepository;
     private final ProductMapper mapper;
@@ -43,11 +47,17 @@ public class ProductService {
     }
 
     public List<ProductResponseDto> findAllProducts() {
-        return repository.findAll()
-                .stream()
-                .peek(product -> cacheRepository.save(mapper.productToCache(product)))
-                .map(mapper::productToResponseDto)
-                .collect(Collectors.toList());
+        List<Product> all = repository.findAll();
+        List<ProductResponseDto> dtos = new ArrayList<>();
+        for(Product p : all){
+            try {
+                cacheRepository.save(mapper.productToCache(p));
+            } catch (Exception e) {
+                log.warn("Redis unavailable at time, sipping cache for Product id={}",p.getProductCode());
+            }
+            dtos.add(mapper.productToResponseDto(p));
+        }
+        return dtos;
     }
 
     public ProductResponseDto findProductById(int id) {
@@ -82,10 +92,15 @@ public class ProductService {
     }
 
     public void deleteProductById(int id) {
-        if(repository.existsById(id)){
-            repository.deleteById(id);
+        if(!repository.existsById(id)){
+            throw new ResourceNotFoundException("Product",id);
         }
-        cacheRepository.deleteById(id);
+        repository.deleteById(id);
+        try {
+            cacheRepository.deleteById(id);
+        }catch (Exception e){
+            log.warn("Redis unavailable at the time, deleting for Product id={} skipped",id);
+        }
 
     }
 

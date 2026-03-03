@@ -11,17 +11,21 @@ import com.tcc.entity.CustomerCache;
 import com.tcc.exception.ResourceNotFoundException;
 import com.tcc.pagination.PageDirection;
 import com.tcc.persistance.CustomerRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class CustomerService {
+    private static final Logger log = LoggerFactory.getLogger(CustomerService.class);
     private final CustomerRepository repository;
     private final CustomerMapper mapper;
     private final CustomerCacheRepository cacheRepository;
@@ -45,11 +49,17 @@ public class CustomerService {
     }
 
     public List<CustomerResponseDto> findAllCustomers() {
-        return repository.findAll()
-                .stream()
-                .peek(customer -> cacheRepository.save(mapper.customerToCache(customer)))
-                .map(mapper::customerToResponseDto)
-                .collect(Collectors.toList());
+        List<Customer> all = repository.findAll();
+        List<CustomerResponseDto> dto = new ArrayList<>();
+        for(Customer c : all){
+            try {
+                cacheRepository.save(mapper.customerToCache(c));
+            } catch (Exception e) {
+                log.warn("Redis unavailable, skipping Customer id={}",c.getCustomerId());
+            }
+            dto.add(mapper.customerToResponseDto(c));
+        }
+        return dto;
     }
 
     public CustomerResponseDto findCustomersById(int id) {
@@ -83,11 +93,16 @@ public class CustomerService {
     }
 
     public void deleteCustomer(int id) {
-        if(repository.existsById(id)){
-            repository.deleteById(id);
+        if(!repository.existsById(id)){
+            throw new ResourceNotFoundException("Customer",id);
 
         }
-        cacheRepository.deleteById(id);
+        repository.deleteById(id);
+        try {
+            cacheRepository.deleteById(id);
+        } catch (Exception e) {
+            log.warn("Redis unavailable,deletion of Customer id={} skipped",id);
+        }
 
     }
 

@@ -10,16 +10,20 @@ import com.tcc.entity.Order;
 import com.tcc.exception.ResourceNotFoundException;
 import com.tcc.pagination.PageDirection;
 import com.tcc.persistance.OrderRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
     private final OrderMapper mapper;
     private final OrderRepository repository;
     private final OrderCacheRepository cacheRepository;
@@ -43,11 +47,17 @@ public class OrderService {
     }
 
     public List<OrderDto> getAllOrders() {
-        return repository.findAll()
-                .stream()
-                .peek(order -> { cacheRepository.save(mapper.orderToCache(order));})
-                .map(mapper::orderToOrderDto)
-                .collect(Collectors.toList());
+        List<Order> all = repository.findAll();
+        List<OrderDto> dto = new ArrayList<>();
+        for(Order o : all){
+            try {
+                cacheRepository.save(mapper.orderToCache(o));
+            } catch (Exception e) {
+                log.warn("Redis unavailable at time, skipping cache for Order id={}",o.getOrderId());
+            }
+            dto.add(mapper.orderToOrderDto(o));
+        }
+        return dto;
     }
     public OrderDto findOrderById(int id){
         return cacheRepository.findById(id)
@@ -80,11 +90,16 @@ public class OrderService {
     }
 
     public void deleteOrderById(int id) {
-        if(repository.existsById(id)){
-            repository.deleteById(id);
+        if(!repository.existsById(id)){
+            throw new ResourceNotFoundException("Order",id);
 
         }
-        cacheRepository.deleteById(id);
+        repository.deleteById(id);
+        try {
+            cacheRepository.deleteById(id);
+        } catch (Exception e) {
+            log.warn("Redis unavailable at time, deleting for Order id={} skipped",id);
+        }
     }
 
     public CursorPageResponse<OrderDto> findOrdersKeySet(Integer lastId, int size, PageDirection direction) {
