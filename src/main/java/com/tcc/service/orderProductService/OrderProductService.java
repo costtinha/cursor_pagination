@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
+
 
 @Service
 public class OrderProductService {
@@ -155,10 +155,15 @@ public class OrderProductService {
             nextCursor = null;
         }
 
-        List<OrderProductDto> dtos = orderProducts.stream()
-                .peek(orderProduct -> { cacheRepository.save(mapper.opToCache(orderProduct));})
-                .map(mapper::opToDto)
-                .toList();
+        List<OrderProductDto> dtos = new ArrayList<>();
+        for (OrderProduct op : orderProducts){
+            try {
+                cacheRepository.save(mapper.opToCache(op));
+            } catch (Exception e) {
+                log.warn("Redis unavailable at time, skipping cache of Op key={}",op.getOrderProductKey());
+            }
+            dtos.add(mapper.opToDto(op));
+        }
 
         return new CursorPageResponse<>(dtos,nextCursor, prevCursor, hasNext, hasPrev);
     }

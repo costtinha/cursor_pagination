@@ -170,10 +170,15 @@ public class EmployeeService {
         }
 
 
-       List<EmployeeResponseDto> dtos = employees.stream()
-                                        .peek(employee -> { cacheRepository.save(mapper.employeeToCache(employee));})
-                                        .map(mapper::employeeToResponseDto)
-                                        .toList();
+        List<EmployeeResponseDto> dtos = new ArrayList<>();
+        for(Employee emp : employees){
+            try {
+                cacheRepository.save(mapper.employeeToCache(emp));
+            }catch (Exception e){
+                log.warn("Redis unavailable at time, skipping cache for Employee id={}",emp.getEmployeeId());
+            }
+            dtos.add(mapper.employeeToResponseDto(emp));
+        }
         return new CursorPageResponse<>(dtos,nextCursor,prevCursor,hasNext,hasPrev);
     }
 }

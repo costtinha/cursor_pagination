@@ -160,10 +160,15 @@ public class ProductLineService{
         }
 
 
-        List<ProductLineDto> dtos = productLines.stream()
-                                    .peek(productLine -> {cacheRepository.save(mapper.productLineToCache(productLine));})
-                                    .map(mapper::productLineToDto)
-                                    .toList();
+        List<ProductLineDto> dtos = new ArrayList<>();
+        for (ProductLine pl : productLines){
+            try {
+                cacheRepository.save(mapper.productLineToCache(pl));
+            } catch (Exception e) {
+                log.warn("Redis unavailable at time,skipping cache PL id={}",pl.getProductLineId());
+            }
+            dtos.add(mapper.productLineToDto(pl));
+        }
         return new CursorPageResponse<>(dtos,nextCursor,prevCursor,hasNext,hasPrevious);
     }
 }

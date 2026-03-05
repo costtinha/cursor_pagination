@@ -157,10 +157,15 @@ public class CustomerService {
         }
 
 
-        List<CustomerResponseDto> dtos = customers.stream()
-                .peek(customer -> { cacheRepository.save(mapper.customerToCache(customer));})
-                .map(mapper::customerToResponseDto)
-                .toList();
+        List<CustomerResponseDto> dtos = new ArrayList<>();
+        for(Customer c : customers){
+            try {
+                cacheRepository.save(mapper.customerToCache(c));
+            } catch (Exception e) {
+                log.warn("Redis unavailable, skipping Customer id={}",c.getCustomerId());
+            }
+            dtos.add(mapper.customerToResponseDto(c));
+        }
 
         return new CursorPageResponse<>(dtos,nextCursor,prevCursor,hasNext,hasPrev);
     }

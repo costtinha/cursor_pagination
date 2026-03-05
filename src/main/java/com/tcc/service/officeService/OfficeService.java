@@ -18,6 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -107,10 +108,15 @@ public class OfficeService {
             nextCursor = null;
         }
 
-        List<OfficeDto> dtos = offices.stream()
-                .peek(office -> { cacheRepository.save(mapper.officeToCache(office));})
-                .map(mapper::officeToDto)
-                .toList();
+        List<OfficeDto> dtos = new ArrayList<>();
+        for (Office office : offices){
+            try {
+                cacheRepository.save(mapper.officeToCache(office));
+            } catch (Exception e) {
+                log.warn("Redis unavailable at time");
+            }
+            dtos.add(mapper.officeToDto(office));
+        }
         return new CursorPageResponse<>(dtos,nextCursor,prevCursor,hasNext,hasPrev);
     }
 

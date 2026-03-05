@@ -154,10 +154,15 @@ public class OrderService {
         }
 
 
-        List<OrderDto> dtos = orders.stream()
-                .peek(order -> { cacheRepository.save(mapper.orderToCache(order));})
-                .map(mapper::orderToOrderDto)
-                .toList();
+        List<OrderDto> dtos = new ArrayList<>();
+        for(Order o : orders){
+            try {
+                cacheRepository.save(mapper.orderToCache(o));
+            } catch (Exception e) {
+                log.warn("Redis unavailable at time, skipping cache for Order id={}",o.getOrderId());
+            }
+            dtos.add(mapper.orderToOrderDto(o));
+        }
 
         return new CursorPageResponse<>(dtos,nextCursor,prevCursor,hasNext,hasPrev);
     }
